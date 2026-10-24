@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { isConfigured, supabase } from './lib/supabase'
 import { createSpot, deleteSpot, listSpots, updateSpot } from './lib/spots'
@@ -13,9 +13,6 @@ import { Login } from './components/Login'
 import { SpotMap } from './components/Map'
 import { NewSpotForm } from './components/NewSpotForm'
 import { SpotPanel } from './components/SpotPanel'
-import { DiscoverPanel } from './components/DiscoverPanel'
-import { discover, type Bounds, type Candidate } from './lib/discover'
-import { lookupElevation } from './lib/elevation'
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined)
@@ -28,15 +25,6 @@ export default function App() {
     try { return localStorage.getItem('basemap') || DEFAULT_BASEMAP } catch { return DEFAULT_BASEMAP }
   })
   const [flyTo, setFlyTo] = useState<Place | null>(null)
-  const [mode, setMode] = useState<'places' | 'discover'>('places')
-  const [discoverType, setDiscoverType] = useState<SpotType>('hike')
-  const [view, setView] = useState<Bounds | null>(null)
-  const [results, setResults] = useState<Candidate[] | null>(null)
-  const [searching, setSearching] = useState(false)
-  const [discoverError, setDiscoverError] = useState('')
-  const [selectedCandidate, setSelectedCandidate] = useState<string | null>(null)
-  const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
-  const searchCtrl = useRef<AbortController | null>(null)
 
   useEffect(() => {
     if (!isConfigured) return
@@ -115,83 +103,22 @@ export default function App() {
     try { localStorage.setItem('basemap', id) } catch { /* private mode: ignore */ }
   }
 
-  const discovering = mode === 'discover'
-  const panelOpen = discovering || Boolean(draft || selected)
-
-  function switchMode(next: 'places' | 'discover') {
-    searchCtrl.current?.abort()
-    setSearching(false)
-    setDraft(null)
-    setSelectedId(null)
-    setSelectedCandidate(null)
-    setMode(next)
-  }
-
-  async function runDiscover() {
-    if (!view) return
-    searchCtrl.current?.abort()
-    const ctrl = new AbortController()
-    searchCtrl.current = ctrl
-    setSearching(true)
-    setDiscoverError('')
-    setSelectedCandidate(null)
-    try {
-      const found = await discover(discoverType, view, ctrl.signal)
-      setResults(found)
-    } catch (e) {
-      if (ctrl.signal.aborted) return
-      setResults(null)
-      setDiscoverError((e as Error).message)
-    } finally {
-      if (!ctrl.signal.aborted) setSearching(false)
-    }
-  }
-
-  async function addCandidate(c: Candidate) {
-    try {
-      const details: Spot['details'] = {}
-      const ele = c.ele ?? (await lookupElevation(c.lat, c.lng).catch(() => null))
-      if (ele !== null) details.elevation_m = Math.round(ele)
-      if (c.distanceKm !== null) details.distance_km = c.distanceKm
-      const spot = await createSpot({
-        name: c.name, type: c.type, status: 'wishlist', lat: c.lat, lng: c.lng, details,
-        description: `${c.kind}. Found with Discover: ${c.osmUrl}`,
-      })
-      setSpots((all) => [...all, spot])
-      setSavedIds((ids) => new Set(ids).add(c.id))
-    } catch (e) {
-      setError((e as Error).message)
-    }
-  }
+  const panelOpen = Boolean(draft || selected)
 
   return (
     <div className="app">
       <SpotMap
-        spots={discovering ? [] : visible}
-        candidates={discovering ? (results ?? []) : []}
-        selectedCandidateId={selectedCandidate}
-        onSelectCandidate={setSelectedCandidate}
-        onViewChange={setView}
+        spots={visible}
         basemap={basemap}
         flyTo={flyTo}
         selectedId={selectedId}
         draft={draft}
         onSelect={(id) => { setDraft(null); setSelectedId(id) }}
-        onMapClick={(lat, lng) => { if (discovering) return; setSelectedId(null); setDraft({ lat, lng }) }}
+        onMapClick={(lat, lng) => { setSelectedId(null); setDraft({ lat, lng }) }}
       />
 
       <header className="topbar">
         <strong>OutThere</strong>
-        <div className="seg modes" role="radiogroup" aria-label="Mode">
-          <label className={!discovering ? 'on' : ''}>
-            <input type="radio" name="mode" checked={!discovering} onChange={() => switchMode('places')} />
-            My places
-          </label>
-          <label className={discovering ? 'on' : ''}>
-            <input type="radio" name="mode" checked={discovering} onChange={() => switchMode('discover')} />
-            Discover
-          </label>
-        </div>
         <span className="muted">
           {hidden ? `${visible.length} of ${spots.length} spots` : `${spots.length} ${spots.length === 1 ? 'spot' : 'spots'}`}
         </span>
@@ -211,7 +138,7 @@ export default function App() {
           onPickPlace={setFlyTo}
         />
       </div>
-      {!discovering && <Filters value={filters} onChange={setFilters} />}
+      <Filters value={filters} onChange={setFilters} />
       <BasemapSwitcher value={basemap} onChange={chooseBasemap} />
 
       {!panelOpen && spots.length === 0 && <p className="hint">Click anywhere on the map to add your first spot.</p>}
@@ -219,20 +146,7 @@ export default function App() {
 
       {panelOpen && (
         <aside className="panel">
-          {discovering ? (
-            <DiscoverPanel
-              type={discoverType}
-              onType={(t) => { setDiscoverType(t); setResults(null); setDiscoverError(''); setSelectedCandidate(null) }}
-              results={results}
-              searching={searching}
-              error={discoverError}
-              selectedId={selectedCandidate}
-              savedIds={savedIds}
-              onSearch={runDiscover}
-              onSelect={setSelectedCandidate}
-              onAdd={addCandidate}
-            />
-          ) : draft ? (
+          {draft ? (
             <NewSpotForm key={`${draft.lat},${draft.lng}`} lat={draft.lat} lng={draft.lng} onSave={addSpot} onCancel={() => setDraft(null)} />
           ) : selected ? (
             <SpotPanel

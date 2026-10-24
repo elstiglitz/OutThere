@@ -4,7 +4,6 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { SPOT_TYPES, type Spot } from '../types'
 import { BASEMAPS, buildStyle } from '../lib/basemaps'
 import type { Place } from '../lib/geocode'
-import type { Bounds, Candidate } from '../lib/discover'
 
 const colorOf = (type: string) => SPOT_TYPES.find((t) => t.value === type)?.color ?? '#2F6B4F'
 
@@ -14,10 +13,6 @@ interface Props {
   draft: { lat: number; lng: number } | null
   basemap: string
   flyTo: Place | null
-  candidates: Candidate[]
-  selectedCandidateId: string | null
-  onSelectCandidate: (id: string) => void
-  onViewChange: (b: Bounds) => void
   onSelect: (id: string) => void
   onMapClick: (lat: number, lng: number) => void
 }
@@ -30,34 +25,19 @@ function makePin(color: string, label: string) {
   return el
 }
 
-function makeNumberedPin(color: string, n: number, label: string) {
-  const el = document.createElement('button')
-  el.className = 'pin candidate'
-  el.setAttribute('aria-label', label)
-  el.innerHTML = `<svg viewBox="0 0 24 32" width="30" height="40" aria-hidden="true"><path d="M12 31C12 31 2 19.5 2 11.5a10 10 0 0 1 20 0C22 19.5 12 31 12 31Z" fill="#fff" stroke="${color}" stroke-width="2.5"/><text x="12" y="15" text-anchor="middle" font-size="11" font-weight="700" fill="${color}" font-family="system-ui, sans-serif">${n}</text></svg>`
-  return el
-}
-
-export function SpotMap({ spots, selectedId, draft, basemap, flyTo, candidates, selectedCandidateId, onSelectCandidate, onViewChange, onSelect, onMapClick }: Props) {
+export function SpotMap({ spots, selectedId, draft, basemap, flyTo, onSelect, onMapClick }: Props) {
   const container = useRef<HTMLDivElement>(null)
   const map = useRef<maplibregl.Map | null>(null)
   const markers = useRef<Map<string, maplibregl.Marker>>(new Map())
   const draftMarker = useRef<maplibregl.Marker | null>(null)
-  const candidatePins = useRef<maplibregl.Marker[]>([])
-  const handlers = useRef({ onSelect, onMapClick, onSelectCandidate, onViewChange })
-  handlers.current = { onSelect, onMapClick, onSelectCandidate, onViewChange }
+  const handlers = useRef({ onSelect, onMapClick })
+  handlers.current = { onSelect, onMapClick }
 
   useEffect(() => {
     const m = new maplibregl.Map({ container: container.current!, style: buildStyle(), center: [6.3, 44.9], zoom: 5 })
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
     m.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left')
     m.on('click', (e) => handlers.current.onMapClick(e.lngLat.lat, e.lngLat.lng))
-    const reportView = () => {
-      const b = m.getBounds()
-      handlers.current.onViewChange({ west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() })
-    }
-    m.on('moveend', reportView)
-    reportView()
     map.current = m
     const pins = markers.current
     return () => {
@@ -100,27 +80,6 @@ export function SpotMap({ spots, selectedId, draft, basemap, flyTo, candidates, 
   useEffect(() => {
     for (const [id, marker] of markers.current) marker.getElement().classList.toggle('selected', id === selectedId)
   }, [selectedId, spots])
-
-  // Numbered pins for Discover results; the number matches the list.
-  useEffect(() => {
-    for (const p of candidatePins.current) p.remove()
-    candidatePins.current = candidates.map((c, i) => {
-      const el = makeNumberedPin(colorOf(c.type), i + 1, `${i + 1}. ${c.name}`)
-      el.dataset.id = c.id
-      el.addEventListener('click', (e) => {
-        e.stopPropagation()
-        handlers.current.onSelectCandidate(c.id)
-      })
-      return new maplibregl.Marker({ element: el, anchor: 'bottom' }).setLngLat([c.lng, c.lat]).addTo(map.current!)
-    })
-  }, [candidates])
-
-  useEffect(() => {
-    for (const p of candidatePins.current) p.getElement().classList.toggle('selected', p.getElement().dataset.id === selectedCandidateId)
-    const c = candidates.find((x) => x.id === selectedCandidateId)
-    if (c) map.current?.easeTo({ center: [c.lng, c.lat], duration: 500 })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCandidateId])
 
   // Pin shown while the new-spot form is open.
   useEffect(() => {
