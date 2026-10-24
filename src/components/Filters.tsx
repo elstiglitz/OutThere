@@ -11,30 +11,40 @@ function toggled<T>(set: Set<T>, value: T): Set<T> {
 export function Filters({ value, onChange }: { value: FilterState; onChange: (f: FilterState) => void }) {
   return (
     <div className="filters" role="group" aria-label="Filter spots">
-      {SPOT_TYPES.map((t) => (
-        <button
-          key={t.value}
-          type="button"
-          className={`chip ${value.types.has(t.value) ? 'on' : ''}`}
-          aria-pressed={value.types.has(t.value)}
-          onClick={() => onChange({ ...value, types: toggled(value.types, t.value) })}
-        >
-          <span className="dot" style={{ background: t.color }} />
-          {t.label}
-        </button>
-      ))}
-      <span className="sep" />
-      {SPOT_STATUSES.map((s) => (
-        <button
-          key={s.value}
-          type="button"
-          className={`chip ${value.statuses.has(s.value) ? 'on' : ''}`}
-          aria-pressed={value.statuses.has(s.value)}
-          onClick={() => onChange({ ...value, statuses: toggled(value.statuses, s.value) })}
-        >
-          {s.label}
-        </button>
-      ))}
+      <fieldset>
+        <legend>Type</legend>
+        {SPOT_TYPES.map((t) => (
+          <label key={t.value} className="check">
+            <input
+              type="checkbox"
+              checked={value.types.has(t.value)}
+              onChange={() => onChange({ ...value, types: toggled(value.types, t.value) })}
+            />
+            <span className="dot" style={{ background: t.color }} />
+            {t.label}
+          </label>
+        ))}
+      </fieldset>
+      <fieldset>
+        <legend>Status</legend>
+        {SPOT_STATUSES.map((s) => (
+          <label key={s.value} className="check">
+            <input
+              type="checkbox"
+              checked={value.statuses.has(s.value)}
+              onChange={() => onChange({ ...value, statuses: toggled(value.statuses, s.value) })}
+            />
+            {s.label}
+          </label>
+        ))}
+      </fieldset>
+      <fieldset>
+        <legend>Other</legend>
+        <label className="check">
+          <input type="checkbox" checked={value.dogsOnly} onChange={() => onChange({ ...value, dogsOnly: !value.dogsOnly })} />
+          Dogs allowed
+        </label>
+      </fieldset>
     </div>
   )
 }

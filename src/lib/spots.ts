@@ -9,7 +9,7 @@ export async function listSpots(): Promise<Spot[]> {
   return data as Spot[]
 }
 
-export async function createSpot(input: { name: string; type: SpotType; status: SpotStatus; lat: number; lng: number }): Promise<Spot> {
+export async function createSpot(input: { name: string; type: SpotType; status: SpotStatus; lat: number; lng: number; details?: Spot['details'] }): Promise<Spot> {
   const { data, error } = await supabase.from('spots').insert(input).select().single()
   if (error) throw error
   return data as Spot

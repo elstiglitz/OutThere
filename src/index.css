@@ -122,15 +122,15 @@ button.small { padding: 4px 10px; font-size: 13px; }
 .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; display: inline-block; }
 .dot.ring { background: transparent; border: 2px solid var(--muted); }
 
-.filters { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-.filters .sep { width: 1px; height: 18px; background: var(--line); }
-.chip {
-  display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; font-size: 13px;
-  background: var(--surface); color: var(--muted); border: 1px solid var(--line); border-radius: 999px;
-  text-decoration: line-through; text-decoration-color: transparent;
+.filters {
+  position: absolute; left: 12px; bottom: 40px; z-index: 3; display: flex; flex-direction: column; gap: 8px;
+  padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .15);
 }
-.chip.on { color: var(--fg); border-color: var(--fg); }
-.chip:not(.on) { opacity: .65; }
+.filters fieldset { display: flex; flex-direction: column; gap: 4px; }
+.filters legend { padding: 0; margin-bottom: 2px; }
+.check { display: flex; align-items: center; gap: 8px; font-size: 14px; text-transform: none; letter-spacing: 0; color: var(--fg); cursor: pointer; }
+.check input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
 
 .basemaps {
   position: absolute; right: 12px; bottom: 34px; z-index: 3; display: flex;
@@ -156,4 +156,5 @@ select {
 }
 @media (max-width: 640px) {
   .app:has(.panel) .basemaps { right: 12px; bottom: calc(65% + 12px); }
+  .app:has(.panel) .filters { bottom: calc(65% + 12px); }
 }

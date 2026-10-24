@@ -24,14 +24,17 @@ export interface DetailField {
 export const DETAIL_FIELDS: Record<SpotType, DetailField[]> = {
   hike: [
     { key: 'distance_km', label: 'Distance', kind: 'number', unit: 'km' },
+    { key: 'elevation_m', label: 'Elevation', kind: 'number', unit: 'm' },
     { key: 'elevation_gain_m', label: 'Elevation gain', kind: 'number', unit: 'm' },
     { key: 'difficulty', label: 'Difficulty', kind: 'select', options: ['Easy', 'Moderate', 'Hard', 'Expert'] },
+    { key: 'dogs', label: 'Dogs allowed', kind: 'select', options: ['Yes', 'No'] },
     { key: 'water', label: 'Water sources', kind: 'text', placeholder: 'Stream at km 3, hut tap' },
   ],
   bivouac: [
     { key: 'elevation_m', label: 'Elevation', kind: 'number', unit: 'm' },
     { key: 'legal', label: 'Legal situation', kind: 'select', options: ['Allowed', 'Tolerated', 'Restricted', 'Forbidden', 'Unknown'] },
     { key: 'wind', label: 'Wind exposure', kind: 'select', options: ['Sheltered', 'Moderate', 'Exposed'] },
+    { key: 'dogs', label: 'Dogs allowed', kind: 'select', options: ['Yes', 'No'] },
     { key: 'water', label: 'Water nearby', kind: 'text', placeholder: 'Lake 5 min below' },
   ],
 }

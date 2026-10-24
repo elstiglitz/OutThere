@@ -6,7 +6,7 @@ import type { Spot, SpotStatus, SpotType } from './types'
 import type { Place } from './lib/geocode'
 import { DEFAULT_BASEMAP } from './lib/basemaps'
 import { Filters } from './components/Filters'
-import { ALL_FILTERS, type FilterState } from './lib/filters'
+import { ALL_FILTERS, matchesFilters, type FilterState } from './lib/filters'
 import { BasemapSwitcher } from './components/BasemapSwitcher'
 import { Search } from './components/Search'
 import { Login } from './components/Login'
@@ -53,10 +53,10 @@ export default function App() {
 
   const selected = spots.find((s) => s.id === selectedId) ?? null
 
-  async function addSpot(name: string, type: SpotType, status: SpotStatus) {
+  async function addSpot(name: string, type: SpotType, status: SpotStatus, elevation: number | null) {
     if (!draft) return
     try {
-      const spot = await createSpot({ name, type, status, ...draft })
+      const spot = await createSpot({ name, type, status, ...draft, details: elevation === null ? {} : { elevation_m: elevation } })
       setSpots((all) => [...all, spot])
       setDraft(null)
       setSelectedId(spot.id)
@@ -86,7 +86,7 @@ export default function App() {
     }
   }
 
-  const visible = spots.filter((s) => filters.types.has(s.type) && filters.statuses.has(s.status))
+  const visible = spots.filter((s) => matchesFilters(s, filters))
   const hidden = spots.length - visible.length
 
   function chooseBasemap(id: string) {
@@ -122,14 +122,14 @@ export default function App() {
           onPickSpot={(id) => {
             const s = spots.find((x) => x.id === id)
             // Make sure a filtered-out spot is still reachable from search.
-            if (s && !(filters.types.has(s.type) && filters.statuses.has(s.status))) setFilters(ALL_FILTERS)
+            if (s && !matchesFilters(s, filters)) setFilters(ALL_FILTERS)
             setDraft(null)
             setSelectedId(id)
           }}
           onPickPlace={setFlyTo}
         />
-        <Filters value={filters} onChange={setFilters} />
       </div>
+      <Filters value={filters} onChange={setFilters} />
       <BasemapSwitcher value={basemap} onChange={chooseBasemap} />
 
       {!panelOpen && spots.length === 0 && <p className="hint">Click anywhere on the map to add your first spot.</p>}
@@ -138,7 +138,7 @@ export default function App() {
       {panelOpen && (
         <aside className="panel">
           {draft ? (
-            <NewSpotForm lat={draft.lat} lng={draft.lng} onSave={addSpot} onCancel={() => setDraft(null)} />
+            <NewSpotForm key={`${draft.lat},${draft.lng}`} lat={draft.lat} lng={draft.lng} onSave={addSpot} onCancel={() => setDraft(null)} />
           ) : selected ? (
             <SpotPanel
               key={selected.id}
