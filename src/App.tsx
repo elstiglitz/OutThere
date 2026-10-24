@@ -2,7 +2,13 @@ import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { isConfigured, supabase } from './lib/supabase'
 import { createSpot, deleteSpot, listSpots, updateSpot } from './lib/spots'
-import type { Spot, SpotType } from './types'
+import type { Spot, SpotStatus, SpotType } from './types'
+import type { Place } from './lib/geocode'
+import { DEFAULT_BASEMAP } from './lib/basemaps'
+import { Filters } from './components/Filters'
+import { ALL_FILTERS, type FilterState } from './lib/filters'
+import { BasemapSwitcher } from './components/BasemapSwitcher'
+import { Search } from './components/Search'
 import { Login } from './components/Login'
 import { SpotMap } from './components/Map'
 import { NewSpotForm } from './components/NewSpotForm'
@@ -14,6 +20,11 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [draft, setDraft] = useState<{ lat: number; lng: number } | null>(null)
   const [error, setError] = useState('')
+  const [filters, setFilters] = useState<FilterState>(ALL_FILTERS)
+  const [basemap, setBasemap] = useState(() => {
+    try { return localStorage.getItem('basemap') || DEFAULT_BASEMAP } catch { return DEFAULT_BASEMAP }
+  })
+  const [flyTo, setFlyTo] = useState<Place | null>(null)
 
   useEffect(() => {
     if (!isConfigured) return
@@ -42,10 +53,10 @@ export default function App() {
 
   const selected = spots.find((s) => s.id === selectedId) ?? null
 
-  async function addSpot(name: string, type: SpotType) {
+  async function addSpot(name: string, type: SpotType, status: SpotStatus) {
     if (!draft) return
     try {
-      const spot = await createSpot({ name, type, ...draft })
+      const spot = await createSpot({ name, type, status, ...draft })
       setSpots((all) => [...all, spot])
       setDraft(null)
       setSelectedId(spot.id)
@@ -75,12 +86,22 @@ export default function App() {
     }
   }
 
+  const visible = spots.filter((s) => filters.types.has(s.type) && filters.statuses.has(s.status))
+  const hidden = spots.length - visible.length
+
+  function chooseBasemap(id: string) {
+    setBasemap(id)
+    try { localStorage.setItem('basemap', id) } catch { /* private mode: ignore */ }
+  }
+
   const panelOpen = Boolean(draft || selected)
 
   return (
     <div className="app">
       <SpotMap
-        spots={spots}
+        spots={visible}
+        basemap={basemap}
+        flyTo={flyTo}
         selectedId={selectedId}
         draft={draft}
         onSelect={(id) => { setDraft(null); setSelectedId(id) }}
@@ -89,9 +110,27 @@ export default function App() {
 
       <header className="topbar">
         <strong>OutThere</strong>
-        <span className="muted">{spots.length} {spots.length === 1 ? 'spot' : 'spots'}</span>
+        <span className="muted">
+          {hidden ? `${visible.length} of ${spots.length} spots` : `${spots.length} ${spots.length === 1 ? 'spot' : 'spots'}`}
+        </span>
         <button className="ghost small" onClick={() => supabase.auth.signOut()}>Sign out</button>
       </header>
+
+      <div className="toolbar">
+        <Search
+          spots={spots}
+          onPickSpot={(id) => {
+            const s = spots.find((x) => x.id === id)
+            // Make sure a filtered-out spot is still reachable from search.
+            if (s && !(filters.types.has(s.type) && filters.statuses.has(s.status))) setFilters(ALL_FILTERS)
+            setDraft(null)
+            setSelectedId(id)
+          }}
+          onPickPlace={setFlyTo}
+        />
+        <Filters value={filters} onChange={setFilters} />
+      </div>
+      <BasemapSwitcher value={basemap} onChange={chooseBasemap} />
 
       {!panelOpen && spots.length === 0 && <p className="hint">Click anywhere on the map to add your first spot.</p>}
       {error && <p className="toast error" role="alert" onClick={() => setError('')}>{error}</p>}

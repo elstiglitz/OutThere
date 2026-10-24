@@ -2,20 +2,8 @@ import { useEffect, useRef } from 'react'
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { SPOT_TYPES, type Spot } from '../types'
-
-const STYLE: maplibregl.StyleSpecification = {
-  version: 8,
-  sources: {
-    topo: {
-      type: 'raster',
-      tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}'],
-      tileSize: 256,
-      maxzoom: 19,
-      attribution: 'Tiles © Esri — Esri, DeLorme, NAVTEQ, TomTom, Intermap, USGS, NRCan, and others',
-    },
-  },
-  layers: [{ id: 'topo', type: 'raster', source: 'topo' }],
-}
+import { BASEMAPS, buildStyle } from '../lib/basemaps'
+import type { Place } from '../lib/geocode'
 
 const colorOf = (type: string) => SPOT_TYPES.find((t) => t.value === type)?.color ?? '#2F6B4F'
 
@@ -23,6 +11,8 @@ interface Props {
   spots: Spot[]
   selectedId: string | null
   draft: { lat: number; lng: number } | null
+  basemap: string
+  flyTo: Place | null
   onSelect: (id: string) => void
   onMapClick: (lat: number, lng: number) => void
 }
@@ -35,7 +25,7 @@ function makePin(color: string, label: string) {
   return el
 }
 
-export function SpotMap({ spots, selectedId, draft, onSelect, onMapClick }: Props) {
+export function SpotMap({ spots, selectedId, draft, basemap, flyTo, onSelect, onMapClick }: Props) {
   const container = useRef<HTMLDivElement>(null)
   const map = useRef<maplibregl.Map | null>(null)
   const markers = useRef<Map<string, maplibregl.Marker>>(new Map())
@@ -44,7 +34,7 @@ export function SpotMap({ spots, selectedId, draft, onSelect, onMapClick }: Prop
   handlers.current = { onSelect, onMapClick }
 
   useEffect(() => {
-    const m = new maplibregl.Map({ container: container.current!, style: STYLE, center: [6.3, 44.9], zoom: 5 })
+    const m = new maplibregl.Map({ container: container.current!, style: buildStyle(), center: [6.3, 44.9], zoom: 5 })
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
     m.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left')
     m.on('click', (e) => handlers.current.onMapClick(e.lngLat.lat, e.lngLat.lng))
@@ -101,6 +91,23 @@ export function SpotMap({ spots, selectedId, draft, onSelect, onMapClick }: Prop
         .addTo(map.current!)
     }
   }, [draft])
+
+  // Show only the chosen basemap.
+  useEffect(() => {
+    const m = map.current!
+    const apply = () => {
+      for (const b of BASEMAPS) m.setLayoutProperty(b.id, 'visibility', b.id === basemap ? 'visible' : 'none')
+    }
+    if (m.isStyleLoaded()) apply()
+    else m.once('load', apply)
+  }, [basemap])
+
+  // Jump to a place picked in the search box.
+  useEffect(() => {
+    if (!flyTo) return
+    if (flyTo.bbox) map.current?.fitBounds(flyTo.bbox, { padding: 60, maxZoom: 13, duration: 800 })
+    else map.current?.easeTo({ center: [flyTo.lng, flyTo.lat], zoom: 11, duration: 800 })
+  }, [flyTo])
 
   // Fly to a spot when it is selected.
   useEffect(() => {

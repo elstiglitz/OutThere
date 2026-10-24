@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { SPOT_TYPES, type Photo, type Spot, type SpotType } from '../types'
+import { DETAIL_FIELDS, SPOT_STATUSES, SPOT_TYPES, type Photo, type Spot, type SpotStatus, type SpotType } from '../types'
 import { deletePhoto, listPhotos, updatePhotoCaption, uploadPhoto } from '../lib/spots'
 
 interface Props {
@@ -30,6 +30,15 @@ export function SpotPanel({ spot, onChange, onDelete, onClose }: Props) {
   useEffect(() => {
     loadPhotos()
   }, [loadPhotos])
+
+  function setDetail(key: string, raw: string) {
+    const field = DETAIL_FIELDS[spot.type].find((f) => f.key === key)
+    const value = raw.trim()
+    const next = { ...spot.details }
+    if (value === '') delete next[key]
+    else next[key] = field?.kind === 'number' ? Number(value) : value
+    if (JSON.stringify(next) !== JSON.stringify(spot.details)) onChange({ details: next })
+  }
 
   async function upload(files: FileList | null) {
     if (!files?.length) return
@@ -84,6 +93,40 @@ export function SpotPanel({ spot, onChange, onDelete, onClose }: Props) {
             <input type="radio" name="spot-type" checked={spot.type === t.value} onChange={() => onChange({ type: t.value as SpotType })} />
             {t.label}
           </label>
+        ))}
+      </div>
+
+      <div className="seg" role="radiogroup" aria-label="Status">
+        {SPOT_STATUSES.map((st) => (
+          <label key={st.value} className={spot.status === st.value ? 'on' : ''}>
+            <input type="radio" name="spot-status" checked={spot.status === st.value} onChange={() => onChange({ status: st.value as SpotStatus })} />
+            {st.label}
+          </label>
+        ))}
+      </div>
+
+      <div className="details">
+        {DETAIL_FIELDS[spot.type].map((f) => (
+          <div key={f.key} className="field">
+            <label htmlFor={`d-${f.key}`}>{f.label}{f.unit ? ` (${f.unit})` : ''}</label>
+            {f.kind === 'select' ? (
+              <select id={`d-${f.key}`} value={String(spot.details[f.key] ?? '')} onChange={(e) => setDetail(f.key, e.target.value)}>
+                <option value="">Not set</option>
+                {f.options!.map((o) => <option key={o} value={o}>{o}</option>)}
+              </select>
+            ) : (
+              <input
+                id={`d-${f.key}`}
+                key={`${spot.id}-${f.key}`}
+                type={f.kind === 'number' ? 'number' : 'text'}
+                inputMode={f.kind === 'number' ? 'decimal' : undefined}
+                min={f.kind === 'number' ? 0 : undefined}
+                defaultValue={String(spot.details[f.key] ?? '')}
+                placeholder={f.placeholder}
+                onBlur={(e) => setDetail(f.key, e.target.value)}
+              />
+            )}
+          </div>
         ))}
       </div>
 
