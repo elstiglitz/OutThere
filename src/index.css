@@ -52,7 +52,8 @@ button.small { padding: 4px 10px; font-size: 13px; }
 .row.between { justify-content: space-between; }
 
 .app { position: relative; height: 100%; overflow: hidden; }
-.map { position: absolute; inset: 0; }
+/* Specific enough to beat maplibre-gl.css, which sets .maplibregl-map { position: relative } */
+.app > .map { position: absolute; inset: 0; }
 
 .topbar {
   position: absolute; top: 12px; left: 12px; display: flex; gap: 12px; align-items: center;
