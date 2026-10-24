@@ -38,6 +38,15 @@ export default function App() {
     listSpots().then(setSpots).catch((e) => setError(e.message))
   }, [session])
 
+  // Esc cancels a spot that is being created.
+  const drafting = draft !== null
+  useEffect(() => {
+    if (!drafting) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setDraft(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [drafting])
+
   if (!isConfigured) {
     return (
       <main className="login">

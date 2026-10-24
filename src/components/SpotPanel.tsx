@@ -87,7 +87,7 @@ export function SpotPanel({ spot, onChange, onDelete, onClose }: Props) {
       <input id="spot-name" className="title" value={name} onChange={(e) => setName(e.target.value)}
         onBlur={() => name.trim() && name !== spot.name && onChange({ name: name.trim() })} />
 
-      <div className="seg">
+      <div className="seg" role="radiogroup" aria-label="Type">
         {SPOT_TYPES.map((t) => (
           <label key={t.value} className={spot.type === t.value ? 'on' : ''}>
             <input type="radio" name="spot-type" checked={spot.type === t.value} onChange={() => onChange({ type: t.value as SpotType })} />
@@ -131,12 +131,12 @@ export function SpotPanel({ spot, onChange, onDelete, onClose }: Props) {
       </div>
 
       <label htmlFor="spot-notes">Notes</label>
-      <textarea id="spot-notes" rows={7} value={description} placeholder="Access, water, wind, where to pitch, the view…"
+      <textarea id="spot-notes" rows={5} value={description} placeholder="Access, water, wind, where to pitch, the view…"
         onChange={(e) => setDescription(e.target.value)}
         onBlur={() => description !== spot.description && onChange({ description })} />
 
       <div className="row between">
-        <h3>Photos <span className="muted">{photos.length || ''}</span></h3>
+        <h3>Photos <span className="muted mono">{photos.length || ''}</span></h3>
         <button className="small" onClick={() => fileInput.current?.click()} disabled={uploading}>
           {uploading ? 'Uploading…' : 'Add photos'}
         </button>
