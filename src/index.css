@@ -29,7 +29,7 @@ code { font-family: var(--mono); font-size: 13px; }
 .error { color: var(--danger); }
 
 label, legend { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-input:not([type='radio']):not([type='file']), textarea {
+input:not([type='radio']):not([type='checkbox']):not([type='file']), textarea {
   width: 100%; font: inherit; color: inherit; background: var(--surface);
   border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px;
 }
@@ -123,14 +123,19 @@ button.small { padding: 4px 10px; font-size: 13px; }
 .dot.ring { background: transparent; border: 2px solid var(--muted); }
 
 .filters {
-  position: absolute; left: 12px; bottom: 40px; z-index: 3; display: flex; flex-direction: column; gap: 8px;
+  position: absolute; left: 12px; bottom: 34px; z-index: 3; display: flex; flex-direction: column; gap: 8px;
+  width: max-content; max-height: calc(100% - 140px); overflow-y: auto;
   padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, .15);
 }
-.filters fieldset { display: flex; flex-direction: column; gap: 4px; }
-.filters legend { padding: 0; margin-bottom: 2px; }
-.check { display: flex; align-items: center; gap: 8px; font-size: 14px; text-transform: none; letter-spacing: 0; color: var(--fg); cursor: pointer; }
-.check input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+.filters fieldset { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.filters fieldset + fieldset { border-top: 1px solid var(--line); padding-top: 8px; }
+.filters legend { font-size: 11px; letter-spacing: .08em; padding: 0; margin-bottom: 4px; }
+.check {
+  display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 0 4px; margin: 0 -4px;
+  font-size: 14px; text-transform: none; letter-spacing: 0; color: var(--fg); white-space: nowrap; cursor: pointer;
+}
+.check input { flex: none; width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
 
 .basemaps {
   position: absolute; right: 12px; bottom: 34px; z-index: 3; display: flex;
@@ -156,5 +161,9 @@ select {
 }
 @media (max-width: 640px) {
   .app:has(.panel) .basemaps { right: 12px; bottom: calc(65% + 12px); }
-  .app:has(.panel) .filters { bottom: calc(65% + 12px); }
+  .app:has(.panel) .filters { bottom: calc(65% + 12px); padding: 8px 10px; }
+}
+@media (pointer: coarse) {
+  .check { min-height: 40px; }
+  .check input { width: 20px; height: 20px; }
 }
